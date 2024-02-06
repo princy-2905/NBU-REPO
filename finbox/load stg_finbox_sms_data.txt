@@ -1,0 +1,8 @@
+COPY  stg_finbox_sms_data FROM  's3://angelone-nbu/finbox/'
+
+IAM_ROLE 'arn:aws:iam::555445901246:role/analytics-redshift-glue-role'
+
+JSON 'auto'
+
+TIMEFORMAT 'auto';
+
