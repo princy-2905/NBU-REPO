@@ -1,0 +1,136 @@
+
+drop table nbu.stg_lender_partycode_mapping
+create table nbu.stg_lender_partycode_mapping
+(
+
+pan  varchar(max),
+phonenumber varchar(max),
+lending_client_id   varchar(max),
+loan_application_id varchar(max),
+party_code  varchar(max),
+lender_id varchar(max)
+
+)
+
+ 
+COPY  "digital-revenue"."nbu"."stg_lender_partycode_mapping" FROM 's3://angelone-nbu/lender_output_data/customer_mapping_2024-02-05.csv'
+IAM_ROLE 'arn:aws:iam::555445901246:role/analytics-redshift-glue-role' DELIMITER ','  ignoreheader 1 REMOVEQUOTES BLANKSASNULL  EMPTYASNULL
+
+drop table nbu.lender_partycode_mapping;
+create table nbu.lender_partycode_mapping
+(
+
+pan  varchar(20),
+phonenumber varchar(20),
+lending_client_id   varchar(20),
+loan_application_id varchar(20),
+party_code  varchar(20),
+lender_id varchar(20),
+file varchar(max)
+
+)
+ 
+select * from nbu.lender_partycode_mapping
+insert into nbu.lender_partycode_mapping
+select trim(pan) pan, trim(phonenumber) phonenumber,
+trim(lending_client_id) lending_client_id,trim(loan_application_id) loan_application_id,
+trim(party_code) party_code,trim(lender_id) lender_id,'s3://angelone-nbu/lender_output_data/customer_mapping_2024-02-05.csv'
+from nbu.stg_lender_partycode_mapping
+
+select * from nbu.lender_partycode_mapping
+
+
+create table nbu.lender
+(
+Lender_Id  varchar(20),
+Lender_joining_date date,
+Lender_Name varchar(max)
+
+
+
+)
+
+insert into nbu.lender
+select 'l00001',getdate(),'ksf'
+select * from nbu.lender
+
+drop table nbu.stg_lender_output
+create table nbu.stg_lender_output ( 
+partner_loan_id varchar(max),
+offer_id    varchar(max),
+credit_limit    varchar(max),
+min_tenure  varchar(max),
+max_tenure  varchar(max),
+roi varchar(max),
+preferred_tenure    varchar(max),
+date_of_offer   varchar(max),
+expiry_date_of_offer varchar(max),  
+pf varchar(max)
+)
+
+truncate table  "digital-revenue"."nbu"."stg_lender_output"
+
+COPY  "digital-revenue"."nbu"."stg_lender_output" FROM 's3://angelone-nbu/lender_output_data/Offers_AngelOne_Batch_3_Others_Category_10th_Jan24.csv'
+IAM_ROLE 'arn:aws:iam::555445901246:role/analytics-redshift-glue-role' DELIMITER ','  ignoreheader 1 REMOVEQUOTES BLANKSASNULL  EMPTYASNULL
+
+
+ 
+
+
+create table nbu.lender_output ( 
+partner_loan_id  varchar(20) ,
+offer_id     varchar(max),
+credit_limit bigint  ,
+min_tenure  int ,
+max_tenure  int ,
+roi decimal(5,2) ,
+preferred_tenure int     ,
+date_of_offer   date ,
+expiry_date_of_offer date , 
+pf  decimal(5,2),
+lender_id varchar(20),
+party_code varchar(20),
+upload_date date,
+inserted_date date,
+file_name varchar(max)
+)
+
+
+insert into nbu.lender_output
+select trim(partner_loan_id) partner_loan_id,
+trim(offer_id) offer_id,
+cast( cast(credit_limit as decimal(30,2) ) as int)  credit_limit,
+cast(min_tenure as int) min_tenure,
+cast(max_tenure as int) max_tenure,
+cast(roi as decimal(5,2)) roi,
+cast(preferred_tenure as int) preferred_tenure,
+to_date(date_of_offer,'DD/MM/YYYY') date_of_offer,
+to_date(expiry_date_of_offer,'DD/MM/YYYY') expiry_date_of_offer ,
+cast(pf as decimal(5,2)) pf,
+ 'l00001' as lender_id,
+ null as party_code,
+ to_date('11012024','DDMMYYYY') upload_date,
+ getdate() inserted_date,
+ 's3://angelone-nbu/lender_output_data/Offers_AngelOne_Batch_3_Others_Category_10th_Jan24.csv' file_name
+  from 
+  nbu.stg_lender_output
+
+  select cast( cast(credit_limit as decimal(30,2) ) as int)  from nbu.stg_lender_output
+
+  update nbu.lender_output  
+  set party_code = b.party_code
+  from nbu.lender_output a 
+  inner join nbu.lender_partycode_mapping b on a.partner_loan_id=b.loan_application_id
+  where a.party_code is null
+
+ select upload_date,count(*)  from   nbu.lender_output
+ group by upload_date --90002
+
+
+ select * from   nbu.lender_output 
+ select * from nbu.lender
+ select * from nbu.lender_partycode_mapping
+
+  select loan_application_id,count(*) from nbu.lender_partycode_mapping
+  group by loan_application_id
+  having count(*)>1
