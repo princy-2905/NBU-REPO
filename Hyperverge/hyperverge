@@ -1,0 +1,110 @@
+drop table nbu.hyperverge_ckyc_output_stg
+
+create table nbu.stg_hyperverge_ckyc_output(
+Sno Varchar(MAX),
+numImages Varchar(MAX),
+aadhaar Varchar(MAX),
+Pan Varchar(MAX),
+aadhaar_flag Varchar(MAX),
+Pan_flag Varchar(MAX),
+passport_flag Varchar(MAX),
+VoterID_flag Varchar(MAX),
+DL_flag Varchar(MAX),
+Photo_flag Varchar(MAX),
+Signature_flag Varchar(MAX),
+CKYC_name Varchar(MAX),
+CKYC_Dob Varchar(MAX),
+CKYC_gender Varchar(MAX),
+CKYC_address1 Varchar(MAX),
+CKYC_address2 Varchar(MAX),
+CKYC_address3 Varchar(MAX),
+CKYC_City Varchar(MAX),
+CKYC_pincode Varchar(MAX),
+CKYC_fathers_name Varchar(MAX),
+CKYC_Address_source Varchar(MAX),
+CKYC_validation_status_action Varchar(MAX),
+Invalid_docs Varchar(MAX),
+Details Varchar(MAX),
+S3_url Varchar(MAX)
+--inserted_date date,
+--updated_date date
+)
+
+drop table nbu.hyperverge_ckyc_output
+create table nbu.hyperverge_ckyc_output(
+Sno int,
+numImages int,
+aadhaar varchar(max),
+Pan Varchar(MAX),
+aadhaar_flag boolean,
+Pan_flag boolean,
+passport_flag boolean,
+VoterID_flag boolean,
+DL_flag boolean,
+Photo_flag boolean,
+
+Signature_flag boolean,
+CKYC_name Varchar(MAX),
+CKYC_Dob date,
+CKYC_gender Varchar(10),
+CKYC_address1 Varchar(MAX),
+CKYC_address2 Varchar(MAX),
+CKYC_address3 Varchar(MAX),
+CKYC_City Varchar(50),
+CKYC_pincode Varchar(MAX),
+CKYC_fathers_name Varchar(MAX),
+CKYC_Address_source Varchar(MAX),
+CKYC_validation_status_action Varchar(MAX),
+Invalid_docs Varchar(MAX),
+Details Varchar(MAX),
+S3_url Varchar(MAX),
+file_name varchar(max),
+inserted_date date,
+upload_date date
+)
+truncate table "digital-revenue"."nbu"."stg_hyperverge_ckyc_output";
+COPY "digital-revenue"."nbu"."stg_hyperverge_ckyc_output" FROM
+'s3://angelone-nbu/hyperverge/nov_base/approved_base_all (2).csv'
+IAM_ROLE 'arn:aws:iam::555445901246:role/analytics-redshift-glue-role'
+DELIMITER ',' ignoreheader 1 REMOVEQUOTES BLANKSASNULL
+EMPTYASNULL;
+select * from "digital-revenue"."nbu"."stg_hyperverge_ckyc_output"
+insert into nbu.hyperverge_ckyc_output
+select
+cast(Sno as int) Sno,
+cast( cast( numImages as decimal(5,3) ) as int) numImages,
+aadhaar ,
+Pan ,
+(case when lower(aadhaar_flag) ='yes' then true else false end) aadhaar_flag,
+(case when lower(Pan_flag) ='yes' then true else false end) Pan_flag ,
+(case when lower(passport_flag) ='yes' then true else false end) passport_flag ,
+(case when lower(VoterID_flag) ='yes' then true else false end) VoterID_flag ,
+(case when lower(DL_flag) ='yes' then true else false end) DL_flag ,
+(case when lower(Photo_flag) ='yes' then true else false end) Photo_flag ,
+(case when lower(Signature_flag) ='yes' then true else false end) Signature_flag ,
+CKYC_name ,
+to_date(CKYC_Dob,'DD-MM-YYYY') CKYC_Dob ,
+CKYC_gender ,
+
+CKYC_address1 ,
+CKYC_address2 ,
+CKYC_address3 ,
+CKYC_City ,
+CKYC_pincode ,
+CKYC_fathers_name ,
+CKYC_Address_source ,
+CKYC_validation_status_action ,
+Invalid_docs ,
+Details ,
+S3_url ,
+'s3://angelone-nbu/hyperverge/nov_base/approved_base_all (2).csv' file_name ,
+getdate() inserted_date ,
+to_date('20231110','YYYYMMDD') upload_date
+from nbu.stg_hyperverge_ckyc_output;
+
+SELECT file_name,count(*) FROM nbu.hyperverge_ckyc_output
+group by file_name;
+
+select * from nbu.stg_hyperverge_ckyc_output
+where len(numImages) >3
+where CKYC_Dob like '%DD%'
